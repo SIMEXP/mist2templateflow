@@ -2,6 +2,7 @@
 """
 Downloading NeuroImaging datasets: atlas datasets
 """
+import argparse
 from pathlib import Path
 import shutil
 import os
@@ -24,6 +25,21 @@ INPUT_DIR = "./data/raw"
 OUTPUT_DIR = "./data/processed"
 
 
+def get_parser():
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter, description="", epilog="""
+    Convert MIST to TemplateFlow competible convention
+    """)
+    parser.add_argument(
+        "-o", "--output", required=False, help=""
+        "Output directory.",
+    )
+    parser.add_argument(
+        "-d", action='store_true', help=""
+        "Delete original data.",
+    )
+    return parser
+
 def fetch_atlas_mist(dimension, data_dir=None, url=None, resume=True, verbose=1):
     """Downloads MIST from https://figshare.com/ndownloader/files/9811081"""
     if dimension not in DESCRIPTIONS:
@@ -33,7 +49,7 @@ def fetch_atlas_mist(dimension, data_dir=None, url=None, resume=True, verbose=1)
 
     opts = {'uncompress': True}
 
-    dataset_name = "MIST2019"
+    dataset_name = "original_MIST2019"
     data_dir = _get_dataset_dir(dataset_name, data_dir=data_dir,
                                 verbose=verbose)
     if dimension == "Hierarchy":
@@ -79,12 +95,21 @@ def convert_templateflow(template, atlas, desc):
     return dict(zip(keys, filenames))
 
 
-if __name__ == "__main__":
+def main():
+    args = get_parser().parse_args()
+
+    if not args.output:
+        output_dir = OUTPUT_DIR
+        input_dir = INPUT_DIR
+    else:
+        output_dir = args.output
+        input_dir = args.output
+
     for desc in DESCRIPTIONS:
-        dataset = fetch_atlas_mist(desc, data_dir=INPUT_DIR)
+        dataset = fetch_atlas_mist(desc, data_dir=input_dir)
         if desc != "Hierarchy":
             nii = Path(dataset['maps'])
-            output_file = Path(OUTPUT_DIR) / dataset['tpf_maps']
+            output_file = Path(output_dir) / dataset['tpf_maps']
 
             if not output_file.parent.is_dir():
                 output_file.parent.mkdir(parents=True, exist_ok=True)
@@ -94,8 +119,16 @@ if __name__ == "__main__":
                 labels = pd.DataFrame(dataset['labels'], columns=["roi"])
             else:
                 labels = pd.read_csv(dataset['labels'], sep=';')
-            labels.to_csv(os.path.join(OUTPUT_DIR, dataset['tpf_labels']), index=False, sep='\t')
+            labels.to_csv(os.path.join(output_dir, dataset['tpf_labels']), index=False, sep='\t')
         else:
             for label, tpf in zip(["Hierarchy_ROI", "Hierarchy"], ["ParcelHierarchyROI", "ParcelHierarchy"]):
                 df = pd.read_csv(dataset[label])
-                df.to_csv(os.path.join(OUTPUT_DIR, dataset[f"tpf_{tpf}"]), index=False, sep='\t')
+                df.to_csv(os.path.join(output_dir, dataset[f"tpf_{tpf}"]), index=False, sep='\t')
+
+    print(f"Convert data and save to {output_dir}/tpl-{TEMPLATE}")
+    if args.d:
+        print("Delete original data")
+        shutil.rmtree(Path(input_dir) / "original_MIST2019" )
+
+if __name__ == "__main__":
+    main()
