@@ -119,16 +119,20 @@ def convert_templateflow(template, atlas, desc):
     return dict(zip(keys, filenames))
 
 
-def main():
-    args = get_parser().parse_args()
+def convert_basc(output_dir, input_dir):
+    for desc in DESCRIPTIONS["BASC"]:
+        for tpl_ver in ['sym', 'asym']:
+            dataset = fetch_atlas_basc(desc, tpl_ver, data_dir=input_dir)
+            nii = Path(dataset['maps'])
+            output_file = Path(output_dir) / dataset['tpf_maps']
 
-    if not args.output:
-        output_dir = OUTPUT_DIR
-        input_dir = INPUT_DIR
-    else:
-        output_dir = args.output
-        input_dir = args.output
+            if not output_file.parent.is_dir():
+                output_file.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(nii, output_file)
+        print(f"Convert data and save to {output_dir}/tpl-{TEMPLATE['BASC'][tpl_ver]}")
 
+
+def convert_mist(output_dir, input_dir):
     for desc in DESCRIPTIONS["MIST"]:
         dataset = fetch_atlas_mist(desc, data_dir=input_dir)
         if desc != "Hierarchy":
@@ -148,23 +152,27 @@ def main():
             for label, tpf in zip(["Hierarchy_ROI", "Hierarchy"], ["ParcelHierarchyROI", "ParcelHierarchy"]):
                 df = pd.read_csv(dataset[label])
                 df.to_csv(os.path.join(output_dir, dataset[f"tpf_{tpf}"]), index=False, sep='\t')
-
     print(f"Convert data and save to {output_dir}/tpl-{TEMPLATE['MIST']}")
 
-    for desc in DESCRIPTIONS["BASC"]:
-        for tpl_ver in ['sym', 'asym']:
-            dataset = fetch_atlas_basc(desc, tpl_ver, data_dir=input_dir)
-            nii = Path(dataset['maps'])
-            output_file = Path(output_dir) / dataset['tpf_maps']
 
-            if not output_file.parent.is_dir():
-                output_file.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy(nii, output_file)
+def main():
+    args = get_parser().parse_args()
+
+    if not args.output:
+        output_dir = OUTPUT_DIR
+        input_dir = INPUT_DIR
+    else:
+        output_dir = args.output
+        input_dir = args.output
+
+    convert_mist(output_dir, input_dir)
+    convert_basc(output_dir, input_dir)
 
     if args.d:
         print("Delete original data")
         shutil.rmtree(Path(input_dir) / "original_MIST2019" )
         shutil.rmtree(Path(input_dir) / "original_BASC" )
+
 
 if __name__ == "__main__":
     main()
