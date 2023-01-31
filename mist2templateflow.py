@@ -11,15 +11,21 @@ import pandas as pd
 
 from sklearn.utils import Bunch
 
+from nilearn.datasets import fetch_atlas_basc_multiscale_2015
 from nilearn.datasets.utils import _get_dataset_dir, _fetch_files
 from nilearn.image import load_img
 
 
 # download the release to data/raw
 DOWNLOAD_URL = "https://figshare.com/ndownloader/files/9811081"
-TEMPLATE = "MNI152NLin2009bSym"
-ATLAS = "MIST"
-DESCRIPTIONS = [7, 12, 20, 36, 64, 122, 197, 325, 444, "ROI", "ATOM", "Hierarchy"]
+TEMPLATE = {
+    "BASC": {"asym": "MNI152NLin2009bAsym", "sym": "MNI152NLin2009bSym"},
+    "MIST": "MNI152NLin2009bSym"
+}
+DESCRIPTIONS = {
+    "BASC": [7, 12, 20, 36, 64, 122, 197, 325, 444],
+    "MIST": [7, 12, 20, 36, 64, 122, 197, 325, 444, "ROI", "ATOM", "Hierarchy"]
+}
 
 INPUT_DIR = "./data/raw"
 OUTPUT_DIR = "./data/processed"
@@ -40,9 +46,28 @@ def get_parser():
     )
     return parser
 
+
+def fetch_atlas_basc(dimension, tpl_ver, data_dir=None, resume=True, verbose=1):
+    """Get the BASC atlas (the base version of MIST)."""
+    dataset_name = "original_BASC"
+    data_dir = _get_dataset_dir(dataset_name, data_dir=data_dir, verbose=verbose)
+    filename = fetch_atlas_basc_multiscale_2015(
+        tpl_ver,
+        data_dir=data_dir,
+        resume=resume,
+        verbose=verbose
+    )[f"scale{dimension:03d}"]
+
+    params = dict(zip(["maps"], [filename]))
+    tpl = TEMPLATE["BASC"][tpl_ver]
+    tpf = convert_templateflow(tpl, "BASC", dimension)
+    params.update(tpf)
+    return Bunch(**params)
+
+
 def fetch_atlas_mist(dimension, data_dir=None, url=None, resume=True, verbose=1):
     """Downloads MIST from https://figshare.com/ndownloader/files/9811081"""
-    if dimension not in DESCRIPTIONS:
+    if dimension not in DESCRIPTIONS["MIST"]:
         raise ValueError(f"{dimension} doesn't exist.")
     if url is None:
         url = DOWNLOAD_URL
@@ -74,9 +99,8 @@ def fetch_atlas_mist(dimension, data_dir=None, url=None, resume=True, verbose=1)
         n_atoms = np.unique(atom_img.dataobj).shape[-1]
         params["labels"] = list(range(1, n_atoms))
 
-    tpf = convert_templateflow(TEMPLATE, ATLAS, dimension)
+    tpf = convert_templateflow(TEMPLATE["MIST"], "MIST", dimension)
     params.update(tpf)
-
     return Bunch(**params)
 
 
@@ -105,7 +129,7 @@ def main():
         output_dir = args.output
         input_dir = args.output
 
-    for desc in DESCRIPTIONS:
+    for desc in DESCRIPTIONS["MIST"]:
         dataset = fetch_atlas_mist(desc, data_dir=input_dir)
         if desc != "Hierarchy":
             nii = Path(dataset['maps'])
@@ -125,10 +149,22 @@ def main():
                 df = pd.read_csv(dataset[label])
                 df.to_csv(os.path.join(output_dir, dataset[f"tpf_{tpf}"]), index=False, sep='\t')
 
-    print(f"Convert data and save to {output_dir}/tpl-{TEMPLATE}")
+    print(f"Convert data and save to {output_dir}/tpl-{TEMPLATE['MIST']}")
+
+    for desc in DESCRIPTIONS["BASC"]:
+        for tpl_ver in ['sym', 'asym']:
+            dataset = fetch_atlas_basc(desc, tpl_ver, data_dir=input_dir)
+            nii = Path(dataset['maps'])
+            output_file = Path(output_dir) / dataset['tpf_maps']
+
+            if not output_file.parent.is_dir():
+                output_file.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(nii, output_file)
+
     if args.d:
         print("Delete original data")
         shutil.rmtree(Path(input_dir) / "original_MIST2019" )
+        shutil.rmtree(Path(input_dir) / "original_BASC" )
 
 if __name__ == "__main__":
     main()
