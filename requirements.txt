@@ -1,1 +1,1 @@
-nilearn==0.9.0
+nilearn>=0.10.2

@@ -52,10 +52,10 @@ def fetch_atlas_basc(dimension, tpl_ver, data_dir=None, resume=True, verbose=1):
     dataset_name = "original_BASC"
     data_dir = _get_dataset_dir(dataset_name, data_dir=data_dir, verbose=verbose)
     filename = fetch_atlas_basc_multiscale_2015(
-        tpl_ver,
         data_dir=data_dir,
         resume=resume,
-        verbose=verbose
+        verbose=verbose,
+        version=tpl_ver
     )[f"scale{dimension:03d}"]
 
     params = dict(zip(["maps"], [filename]))
