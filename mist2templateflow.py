@@ -12,7 +12,7 @@ import pandas as pd
 from sklearn.utils import Bunch
 
 from nilearn.datasets import fetch_atlas_basc_multiscale_2015
-from nilearn.datasets.utils import _get_dataset_dir, _fetch_files
+from nilearn.datasets.utils import get_dataset_dir, fetch_files
 from nilearn.image import load_img
 
 
@@ -50,7 +50,7 @@ def get_parser():
 def fetch_atlas_basc(dimension, tpl_ver, data_dir=None, resume=True, verbose=1):
     """Get the BASC atlas (the base version of MIST)."""
     dataset_name = "original_BASC"
-    data_dir = _get_dataset_dir(dataset_name, data_dir=data_dir, verbose=verbose)
+    data_dir = get_dataset_dir(dataset_name, data_dir=data_dir, verbose=verbose)
     filename = fetch_atlas_basc_multiscale_2015(
         data_dir=data_dir,
         resume=resume,
@@ -75,7 +75,7 @@ def fetch_atlas_mist(dimension, data_dir=None, url=None, resume=True, verbose=1)
     opts = {'uncompress': True}
 
     dataset_name = "original_MIST2019"
-    data_dir = _get_dataset_dir(dataset_name, data_dir=data_dir,
+    data_dir = get_dataset_dir(dataset_name, data_dir=data_dir,
                                 verbose=verbose)
     if dimension == "Hierarchy":
         filenames = [(os.path.join("Release", "Hierarchy", "MIST_PARCEL_ORDER_ROI.csv"), url, opts),
@@ -92,7 +92,7 @@ def fetch_atlas_mist(dimension, data_dir=None, url=None, resume=True, verbose=1)
                     ]
         keys = ["maps", "labels"]
 
-    files_ = _fetch_files(data_dir, filenames, resume=resume, verbose=verbose)
+    files_ = fetch_files(data_dir, filenames, resume=resume, verbose=verbose)
     params = dict(zip(keys, files_))
     if dimension == "ATOM":
         atom_img = load_img(files_[0])
