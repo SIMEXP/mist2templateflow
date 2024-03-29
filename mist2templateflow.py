@@ -12,7 +12,7 @@ import pandas as pd
 from sklearn.utils import Bunch
 
 from nilearn.datasets import fetch_atlas_basc_multiscale_2015
-from nilearn.datasets.utils import get_dataset_dir, fetch_files
+from nilearn.datasets._utils import get_dataset_dir, fetch_files
 from nilearn.image import load_img
 
 
