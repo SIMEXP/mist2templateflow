@@ -16,7 +16,9 @@ from nilearn.image import load_img
 
 
 # download the release to data/raw
-DOWNLOAD_URL = "https://figshare.com/ndownloader/files/9811081"
+# figshare.com/ndownloader now answers scripted clients with an empty
+# HTTP 202 (bot challenge); the API endpoint redirects to the actual zip.
+DOWNLOAD_URL = "https://api.figshare.com/v2/file/download/9811081"
 TEMPLATE = {
     "BASC": {"asym": "MNI152NLin2009bAsym", "sym": "MNI152NLin2009bSym"},
     "MIST": "MNI152NLin2009bSym"
@@ -69,7 +71,7 @@ def fetch_atlas_basc(dimension, tpl_ver, data_dir=None, resume=True, verbose=1):
 
 
 def fetch_atlas_mist(dimension, data_dir=None, url=None, resume=True, verbose=1):
-    """Downloads MIST from https://figshare.com/ndownloader/files/9811081"""
+    """Downloads MIST from figshare (see DOWNLOAD_URL)."""
     # private nilearn API: imported here so BASC conversion does not
     # break if these helpers move
     from nilearn.datasets._utils import get_dataset_dir, fetch_files
