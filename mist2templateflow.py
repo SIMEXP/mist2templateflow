@@ -12,7 +12,6 @@ import pandas as pd
 from sklearn.utils import Bunch
 
 from nilearn.datasets import fetch_atlas_basc_multiscale_2015
-from nilearn.datasets._utils import get_dataset_dir, fetch_files
 from nilearn.image import load_img
 
 
@@ -50,13 +49,17 @@ def get_parser():
 def fetch_atlas_basc(dimension, tpl_ver, data_dir=None, resume=True, verbose=1):
     """Get the BASC atlas (the base version of MIST)."""
     dataset_name = "original_BASC"
-    data_dir = get_dataset_dir(dataset_name, data_dir=data_dir, verbose=verbose)
+    if data_dir is not None:
+        data_dir = Path(data_dir) / dataset_name
+    # nilearn >= 0.10.3 returns a single resolution under "maps";
+    # the "scaleXXX" keys were removed in nilearn 0.13.0
     filename = fetch_atlas_basc_multiscale_2015(
         data_dir=data_dir,
         resume=resume,
         verbose=verbose,
+        resolution=dimension,
         version=tpl_ver
-    )[f"scale{dimension:03d}"]
+    )["maps"]
 
     params = dict(zip(["maps"], [filename]))
     tpl = TEMPLATE["BASC"][tpl_ver]
@@ -67,6 +70,10 @@ def fetch_atlas_basc(dimension, tpl_ver, data_dir=None, resume=True, verbose=1):
 
 def fetch_atlas_mist(dimension, data_dir=None, url=None, resume=True, verbose=1):
     """Downloads MIST from https://figshare.com/ndownloader/files/9811081"""
+    # private nilearn API: imported here so BASC conversion does not
+    # break if these helpers move
+    from nilearn.datasets._utils import get_dataset_dir, fetch_files
+
     if dimension not in DESCRIPTIONS["MIST"]:
         raise ValueError(f"{dimension} doesn't exist.")
     if url is None:
